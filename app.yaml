@@ -1,0 +1,24 @@
+runtime: go # use 'custom' if building files from Dockerfile
+env: flex
+service: default # this is optional for the default service.  
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 2
+  cool_down_period_sec: 120
+  cpu_utilization:
+    target_utilization: 0.7
+
+resources:
+  cpu: 1
+  memory_gb: 1
+  disk_size_gb: 10 # minimum 10GB, max is 10240 GB
+
+health_check:
+  enable_health_check: True
+  check_interval_sec: 5
+  timeout_sec: 4
+  unhealthy_threshold: 2
+  healthy_threshold: 2
+env_variables:
+  FOO: 'bar'

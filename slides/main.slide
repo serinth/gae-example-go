@@ -1,0 +1,235 @@
+Google App Engine
+GAE
+21 Feb 2017
+Tags: GAE, App Engine, DiUS Computing
+
+Tony Truong
+Software Engineer, DiUS Computing
+ttruong@dius.com.au
+@tonykqt
+
+* App Engine PaaS
+
+Google App Engine is a platform for building scalable web applications and mobile backends. App Engine provides you with built-in services and APIs such as NoSQL datastores, memcache, and a user authentication API, common to most applications.
+
+App Engine will scale your application automatically in response to the amount of traffic it receives so you only pay for the resources you use. Just upload your code and Google will manage your app's availability. There are no servers for you to provision or maintain. 
+
+[[https://cloud.google.com/appengine/]]
+
+* Standard Environment
+
+Applications will be wrapped in Google's own container technology.
+
+Supports:
+
+- Python 2.7
+- Java 7
+- PHP 5
+- Go
+
+* Flexible Environment
+
+Applications will be deployed in containers using Docker.
+
+Supports:
+
+- All of the things
+
+* Region Support
+
+- us-central
+- us-east1
+- europe-west
+- asia-northeast1
+
+* What Does App Engine Manage?
+
+- instance health checks
+- OS updates including critical backwards compatible ones
+- root SSH access
+- autoscaling
+- load balancing
+- ...
+
+: VMs are restarted on a weekly basis to perform OS and Security updates
+
+* Configuration Files
+
+* Config Structure
+Modules:
+.image ./images/modules_yaml_files.png
+
+Simple:
+.image ./images/modules_yaml_files_simple.svg
+
+[[https://cloud.google.com/appengine/docs/flexible/go/configuration-files][Gdoc Link]]
+
+* app.yaml
+
+Each service has an *app.yaml* file that describes the service. It can be named the same as your service and there can be more than one.
+Usually each module or directory that is a self contained service will have an app.yaml.
+
+This file determines:
+
+- Scaling Type
+- CPU, disk, and memory resources
+
+* app.yaml example
+
+.code ../app.yaml
+
+* cron.yaml
+
+Cron jobs can be scheduled to invoke an *HTTP* *GET* on a URL and can wait for up to 60 minutes for a response.
+Free applications can schedule *20* tasks.
+Paid applications can schedule *200* tasks.
+
+  cron:
+  - description: daily summary job
+    url: /tasks/summary
+    schedule: every 24 hours
+
+  - description: monday morning mailout
+    url: /mail/weekly
+    schedule: every monday 09:00
+    timezone: Australia/NSW
+
+  - description: new daily summary job
+    url: /tasks/summary
+    schedule: every 24 hours
+    target: beta
+
+Refs:
+[[https://en.wikipedia.org/wiki/List_of_tz_database_time_zones][Time zone names]]
+
+* Cron cont.
+
+*<target>* is prepended to the app hostname.
+
+More examples of schedules:
+
+  every 12 hours
+  every 5 minutes from 10:00 to 14:00
+  every day 00:00
+  every monday 09:00
+  2nd,third mon,wed,thu of march 17:00
+  1st monday of sep,oct,nov 17:00
+  1 of jan,april,july,oct 00:00
+
+Issue an empty cron file to remove all cron jobs e.g. in cron.yaml:
+  
+  cron:
+
+*Note that if a dispatch.yaml is used the proper routing might not happen even if target is specified
+
+* Cron double cont.
+
+Cron jobs are always from the IP address: *0.1.0.1*. 
+
+We can authorize internal requests only by using the app.yaml configuration:
+  login: admin
+
+Internal requests satisfy this request because cron jobs add the header:
+
+  X-Appengine-Cron: true
+
+* index.yaml
+
+This file configures what database indexes exist on Google Cloud Datastore if your app uses GCD.
+The application requires that you know what queries are run in advance
+
+Example:
+
+  indexes:
+
+  - kind: Cat
+    ancestor: no
+    properties:
+    - name: name
+    - name: age
+      direction: desc
+
+* dispatch.yaml
+
+Overwrites routing rules. Allows incoming requests to be routing to specific services based on hostname. [[https://cloud.google.com/appengine/docs/flexible/go/how-requests-are-routed#routing_with_a_dispatch_file][Documentation Link]]
+
+Example:
+
+  application: simple-sample
+
+  dispatch:
+    # Default module serves the typical web resources and all static resources.
+    - url: "*/favicon.ico"
+      module: default
+
+    # Default module serves simple hostname request.
+    - url: "simple-sample.appspot.com/"
+      module: default
+
+    # Send all mobile traffic to the mobile frontend.
+    - url: "*/mobile/*"
+      module: mobile-frontend
+
+The dispatch file can contain up to 20 routing rules. When specifying the URL string, neither the hostname nor the path can be longer than 100 characters.
+
+* Deploying an App
+
+* Deploying from an image repository
+
+  gcloud app deploy --image-url=gcr.io/my-project-id/my-container-image
+
+This will read the current directory's app.yaml but use that image.
+The URL for the application will be in the output e.g.
+
+  https://dius-158701.appspot.com
+
+Services/modules will have url's similar to: 
+  
+  https://<MYSERVICE>-dot-dius-158701.appspot.com
+
+If we build our own custom runtime we can use Google's Go base image at *gcr.io/google-appenegine/golang* in a _Dockerfile_
+
+: we can use the kubernetes project example asia.gcr.io/dius-158701/gke-webapp:v1
+: note that hostnames are -dot-<project name> because GCP doesn't support multi level subdomains
+
+* Golang Deploy Tool
+
+*aedeploy* is a tool that assembles a Go app's dependencies:
+
+  go get google.golang.org/appengine/cmd/aedeploy
+
+Then to deploy:
+
+  cd <WORKDIR>
+  aedeploy gcloud app deploy --version <version number>
+
+: aedeploy will be in $GOPATH/bin
+
+* Versions / Migration / Splitting Traffic
+
+.image ./images/versions-traffic.png
+
+Migrating traffic from one version to another is possible with a Migrate Button.
+
+Splitting traffic to multiple versions is also possible.
+
+* VMs running on App Engine
+
+.image ./images/appengine-vms.png
+
+.image ./images/ssh-docker.png
+
+* Checking Our App on the Instance
+
+  sudo docker ps --filter "name=gaeapp"
+  
+  CONTAINER ID    60046724cda9         
+  IMAGE           us.gcr.io/dius-158701/appengine/default.v1@sha256:xxxc            
+  COMMAND         "go-wrapper run"            
+  CREATED         31 minutes ago 
+  STATUS          Up 31 minutes   
+  PORTS               
+  NAMES           gaeapp
+
+NGINX runs another in another container that has port 8080 exposed and points to our app.
+                                                  
