@@ -205,6 +205,8 @@ Then to deploy:
 
 : aedeploy will be in $GOPATH/bin
 
+* Whats on the App Engine Console
+
 * Versions / Migration / Splitting Traffic
 
 .image ./images/versions-traffic.png

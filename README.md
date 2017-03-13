@@ -1,6 +1,10 @@
 This repo hosts a tutorial on how to get started withi Google App Engine (GAE).
 
-# Slides
+# Slides - Quick Link
+
+[Go Talk Slides Link](http://go-talks.appspot.com/github.com/serinth/gae-example-go/slides/main.slide#1)
+
+# Slides - Present Tool
 
 Slides are using the [Golang Present tool](https://godoc.org/golang.org/x/tools/present) which can be installed into your GOPATH with:
 
